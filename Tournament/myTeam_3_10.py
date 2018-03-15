@@ -283,7 +283,6 @@ class DoubleAgent(ReflexCaptureAgent):
     ''' 
     Your initialization code goes here, if you need any.
     '''
-    """
     global agentPositions, agentStrategies
     self.startingPosition = gameState.getAgentState(self.index).getPosition()
     agentPositions[self.index] = self.startingPosition
@@ -302,7 +301,6 @@ class DoubleAgent(ReflexCaptureAgent):
       topChosen = True
     else:
       self.onTop = False
-    """
 
 
 
@@ -348,7 +346,6 @@ class DoubleAgent(ReflexCaptureAgent):
     features = util.Counter()
     successor = self.getSuccessor(gameState, action)
     features['successorScore'] = self.getScore(successor)
-    """
     global topFood, bottomFood
     currentPosition = gameState.getAgentState(self.index).getPosition()
     if currentPosition in topFood:
@@ -357,18 +354,17 @@ class DoubleAgent(ReflexCaptureAgent):
       bottomFood.remove(currentPosition)
     if currentPosition in allFood:
       allFood.remove(currentPosition)
-    """
+
     myState = successor.getAgentState(self.index)
     myPos = myState.getPosition()
 
-    """
+    # Compute distance to the nearest food
     foodList = allFood
     if self.onTop and (len(topFood) > 0):
       foodList = topFood 
     elif len(bottomFood) > 0:
       foodList = bottomFood
-    """
-    foodList = self.getFood(gameState).asList() + self.getCapsules(gameState)
+
     if len(foodList) > 0: # This should always be True,  but better safe than sorry
       minDistance = min([self.getMazeDistance(myPos, food) for food in foodList])
       features['distanceToFood'] = minDistance
@@ -387,11 +383,14 @@ class DoubleAgent(ReflexCaptureAgent):
       if ghostDistance < 2:
         features[ghostDistance] = 3*ghostDistance
       elif ghostDistance < 4:
-        features['ghostDistance'] = 1.5 * ghostDistance
-        if len(successor.getLegalActions(self.index)) == 2:
+        features['ghostDistance'] = 1.2 * ghostDistance
+        if len(successor.getLegalActions(self.index)) == 1:
           features['trapped'] = 1
-      else: 
+      elif ghostDistance < 6:
         features['ghostDistance'] = ghostDistance
+        features['trapped'] = 0
+      else: 
+        features['ghostDistance'] = 0
         features['trapped'] = 0
 
     if action == Directions.STOP: 
@@ -404,26 +403,11 @@ class DoubleAgent(ReflexCaptureAgent):
       dists = []
       for a in invaders:
         d = self.getMazeDistance(myPos, a.getPosition())
-        if myState.scaredTimer > 6:
-          dists.append(0)
-        elif myState.scaredTimer > 0 and d < 4:
+        if myState.scaredTimer > 0 and d < 4:
           dists.append(-1*d)
-        elif d < 7:
-          dists.append(d)
         else:
-          dists.append(0)
+          dists.append(d)
       features['invaderDistance'] = min(dists)
-
-    teammateDistance = 6
-    for i in self.getTeam(gameState):
-      if i == self.index:
-        continue
-      teammateState = successor.getAgentState(i)
-      if teammateState.isPacman == False:
-        continue
-      teammateDistance = self.getMazeDistance(myPos, teammateState.getPosition())
-    if (teammateDistance < 5):
-      features['teammateDistance'] = teammateDistance
 
     return features
 
@@ -448,10 +432,8 @@ class DoubleAgent(ReflexCaptureAgent):
         d = self.getMazeDistance(myPos, a.getPosition())
         if myState.scaredTimer > 0 and d < 4:
           dists.append(-1*d)
-        elif d < 6:
-          dists.append(d)
         else:
-          dists.append(0)
+          dists.append(d)
       features['invaderDistance'] = min(dists)
 
     agentDistance = min(successor.getAgentDistances())
@@ -461,23 +443,12 @@ class DoubleAgent(ReflexCaptureAgent):
     if action == Directions.STOP: features['stop'] = 1
     rev = Directions.REVERSE[gameState.getAgentState(self.index).configuration.direction]
     if action == rev: features['reverse'] = 1
-    """
-    teammateDistance
-    for i in self.getTeam(gameState):
-      if i == self.index:
-        continue
-      teammateState = successor.getAgentState(i)
-      if teammateState.isPacman == False:
-        continue
-      teammateDistance = self.getMazeDistance(myPos, teammateState.getPosition())
-    if (teammateDistance < 5):
-      features['teammateDistance'] = teammateDistance
-    """
+
     return features
 
   def getWeights(self, gameState, action):
     #if agentStrategies[self.index] == 'offense':
-    return {'successorScore': 100, 'distanceToFood': -3, 'ghostDistance':2, 'stop': -100, 'trapped': -50, 'invaderDistance': -10}
+    return {'successorScore': 100, 'distanceToFood': -3, 'ghostDistance':2, 'stop': -50, 'trapped': -50, 'invaderDistance': -10}
     #else:
       #return {'numInvaders': -1000, 'onDefense': 100, 'invaderDistance': -10, 'stop': -100, 'reverse': -2, 'agentDistance': -5}
 
